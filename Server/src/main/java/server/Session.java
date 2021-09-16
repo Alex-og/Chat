@@ -1,82 +1,67 @@
 package server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
-import java.util.List;
 
 public class Session extends Thread {
     private final Socket clientSocket;
-    private final Server server;
-    private DataOutputStream output;
-    private DataInputStream input;
+    private BufferedReader input;
+    private BufferedWriter output;
 
-    public Session(Server server, Socket clientSocket) {
-        this.server = server;
+    public Session(Socket clientSocket) throws IOException {
         this.clientSocket = clientSocket;
+        this.input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        this.output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+        start();
     }
 
     @Override
     public void run() {
-        try {
-            handleClientSocket();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        handleClientSocket();
     }
 
-    private void handleClientSocket() throws IOException {
-        this.input = new DataInputStream(clientSocket.getInputStream());
-        this.output = new DataOutputStream(clientSocket.getOutputStream());
-        /*output.writeUTF("Hello from server!");
-        String msgFromClient = input.readUTF();
-        System.out.println("msgFromClient: " + msgFromClient);*/
-
-        /*InputStream inputStream = clientSocket.getInputStream();
-        OutputStream outputStream = clientSocket.getOutputStream();*/
-        /*BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-        String line;*/
-        while (true) {
-        String msgFromClient = input.readUTF();
-
-            if ("quit".equalsIgnoreCase(msgFromClient)) {
-                break;
-            } else {
-                handleMsg(msgFromClient);
-            }
+    private void handleClientSocket() {
+        String msgFromClient;
+        try {
+            msgFromClient = input.readLine();
+            try {
+                output.write(msgFromClient + "\n");
+                output.flush();
+            } catch (IOException ex) {}
+            try {
+                while (!clientSocket.isClosed()) {
+                    msgFromClient = input.readLine();
+                    if (msgFromClient.equalsIgnoreCase("exit")) {
+                        this.downService();
+                        break;
+                    }
+                    System.out.println("Msg: " + msgFromClient);
+                    handleMsg(msgFromClient);
+                }
+            } catch (NullPointerException ne) {}
+        } catch (IOException e) {
+            this.downService();
         }
-        clientSocket.close();
     }
 
     private void handleMsg(String msg) throws IOException {
-        List<Session> sessions = server.getSessions();
-        //String msg = input.readUTF();
-        for (Session session : sessions) {
-            session.send(msg);
+        for (Session ss : Server.sessions) {
+            ss.send(msg);
         }
     }
 
     private void send(String msg) throws IOException {
-        output.writeUTF(msg);
+        output.write(msg + "\n");
+        output.flush();
     }
 
-    /*public void getConnectToClient() {
-        try (DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-             DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream())) {
-            String request = inputStream.readUTF();
-            System.out.println("received: " + request);//For test
-            Message message = new Gson().fromJson(request, Message.class);
-
-            Service service = new Service(message);
-            //service.startProg();
-            String response = new Gson().toJson(service.getResponse());
-            if (response.length() > 0) {
-                outputStream.writeUTF(response);
+    private void downService() {
+        try {
+            if (!clientSocket.isClosed()) {
+                clientSocket.close();
+                input.close();
+                output.close();;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-
+        } catch (IOException e) {}
+    }
 }

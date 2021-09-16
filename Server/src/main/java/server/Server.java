@@ -9,42 +9,15 @@ import java.util.List;
 /**
  * @author Oleksandr Haleta
  */
-public class Server /*extends Thread*/ {
-    private final int serverPort;
-    private List<Session> sessions = new ArrayList<>();
+public class Server {
+    private static final int PORT = 35522;
+    static List<Session> sessions = new ArrayList<>();
 
-    public Server(int serverPort) {
-        this.serverPort = serverPort;
-    }
-
-    public List<Session> getSessions() {
-        return sessions;
-    }
-
-    /*@Override
-    public void run() {
-        try (ServerSocket server = new ServerSocket(serverPort)) {
-            while (true) {
-                *//*Session session = new Session(server.accept());
-                session.getConnectToClient();*//*
+    public static void main(String[] args) {
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            while (!server.isClosed()) {
                 Socket clientSocket = server.accept();
-                Session session = new Session(this, clientSocket);
-                sessions.add(session);
-                session.start();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-    public void ddd() {
-        try (ServerSocket server = new ServerSocket(serverPort)) {
-            while (true) {
-                /*Session session = new Session(server.accept());
-                session.getConnectToClient();*/
-                Socket clientSocket = server.accept();
-                Session session = new Session(this, clientSocket);
-                sessions.add(session);
-                session.start();
+                sessions.add(new Session(clientSocket));
             }
         } catch (IOException e) {
             e.printStackTrace();

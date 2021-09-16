@@ -1,8 +1,5 @@
-package client2;
+package client;
 
-/**
- * @author Oleksandr Haleta
- */
 public class TCPClient {
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 35522;
